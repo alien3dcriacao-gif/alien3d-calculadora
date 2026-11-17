@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f172a">
+  <title>Alien 3D · Calculadora de Impressão 3D</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Fonte Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen antialiased">
+
+<!-- Container Principal -->
+<div id="tela" class="max-w-5xl mx-auto p-4 md:p-8">
+  
+  <!-- Cabeçalho -->
+  <header class="mb-5 flex justify-between items-center flex-wrap gap-3">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-emerald-400 tracking-tight">👽 Alien 3D · Calculadora de Impressão 3D</h1>
+      <p class="text-xs sm:text-sm text-slate-400 mt-1">Gestão de custos, leitura de G-code multicolor, insumos extras e histórico na nuvem.</p>
+    </div>
+    <div id="statusSinc" class="text-xs bg-slate-800 border border-slate-700 px-3.5 py-2 rounded-xl text-slate-300 font-medium shadow-sm">
+      ☁️ Conectando ao Google Sheets...
+    </div>
+  </header>
+
+  <!-- Navegação de Abas -->
+  <div class="flex gap-2 mb-6">
+    <button id="tabCalc" type="button" class="px-4 py-2.5 rounded-xl font-semibold text-sm bg-emerald-600 text-white shadow-md transition">
+      🧮 Calculadora
+    </button>
+    <button id="tabLista" type="button" class="px-4 py-2.5 rounded-xl font-semibold text-sm bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+      📁 Orçamentos (<span id="qtdSalvos">0</span>)
+    </button>
+  </div>
+
+  <!-- ABA 1: CALCULADORA -->
+  <div id="abaCalc">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
+      <!-- COLUNA ESQUERDA: ENTRADAS -->
+      <section class="bg-slate-800 rounded-2xl p-4 sm:p-6 space-y-4 shadow-xl border border-slate-700/70">
+        
+        <!-- Leitor de G-CODE -->
+        <div id="dropZone" class="border-2 border-dashed border-emerald-500/60 hover:border-emerald-400 bg-slate-900/70 rounded-xl p-4 text-center transition cursor-pointer">
+          <input id="inputGcodeUnico" type="file" accept=".gcode,.gco,.g" class="hidden">
+          <input id="inputGcodeMulti" type="file" accept=".gcode,.gco,.g" multiple class="hidden">
+          
+          <p class="text-sm font-bold text-emerald-300">⚡ Leitura Automática de .GCODE (Monocolor & Multicolor)</p>
+          <p class="text-xs text-slate-400 mt-0.5 mb-3">Arraste os arquivos aqui ou escolha uma opção:</p>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button id="btnGcodeUnico" type="button" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 px-3 rounded-xl text-xs sm:text-sm transition shadow">
+              📄 1 Arquivo .GCODE
+            </button>
+            <button id="btnGcodeMulti" type="button" class="bg-sky-600 hover:bg-sky-500 text-white font-semibold py-2.5 px-3 rounded-xl text-xs sm:text-sm transition shadow">
+              📚 Vários .GCODE (Lote)
+            </button>
+          </div>
+
+          <div id="statusLeitura" class="hidden mt-3 text-xs bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-left"></div>
+        </div>
+
+        <!-- Nome da Peça -->
+        <div>
+          <label class="font-semibold text-sm text-slate-200">📁 Nome do arquivo / peça atual</label>
+          <input id="pdfPeca" type="text" placeholder="Ex: Chaveiro_Logotipo_Alien3D" class="w-full bg-slate-700/80 rounded-xl p-2.5 mt-1 text-sm border border-slate-600 focus:border-emerald-500 focus:outline-none">
+        </div>
+
+        <!-- Filamento e Quantidade -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="sm:col-span-2">
+            <label class="font-semibold text-sm text-slate-200">1️⃣ Filamento usado</label>
+            <div class="flex gap-1.5 mt-1">
+              <input id="peso" type="number" min="0" step="any" value="100" class="w-full bg-slate-700/80 rounded-xl p-2.5 text-sm border border-slate-600 focus:border-emerald-500 focus:outline-none">
+              <select id="pesoUn" class="bg-slate-700/80 rounded-xl p-2.5 text-sm border border-slate-600 focus:border-emerald-500 focus:outline-none">
+                <option value="g">g</option>
+                <option value="kg">kg</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="font-semibold text-sm text-slate-200">🔢 Quantidade</label>
+            <input id="pdfQtd" type="number" min="1" value="1" class="w-full bg-slate-700/80 rounded-xl p-2.5 mt-1 text-sm text-center font-bold text-emerald-300 border border-slate-600 focus:border-emerald-500 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Tempo Unitário e Preço do Kg -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="font-semibold text-sm text-slate-200">2️⃣ Tempo unitário (horas)</label>
+            <input id="horas" type="number" min="0" step="any" value="3" class="w-full bg-slate-700/80 rounded-xl p-2.5 mt-1 text-sm border border-slate-600 focus:border-emerald-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="font-semibold text-sm text-slate-200">4️⃣ Preço 1kg filamento (R$)</label>
+            <input id="precoKg" type="number" min="0" step="any" value="110" class="w-full bg-slate-700/80 rounded-xl p-2.5 mt-1 text-sm border border-slate-600 focus:border-emerald-500 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Exibição em Tempo Real do Tempo Total -->
+        <div class="bg-slate-900/90 border border-slate-700 rounded-xl p-3 text-xs flex justify-between items-center">
+          <span class="text-slate-300 font-medium">⏱️ Tempo Total de Impressão (com qtd):</span>
+          <strong id="rTempoTotalVisual" class="text-sky-300 text-sm font-mono">3,0 horas (3h 0min)</strong>
+        </div>
+
+        <!-- Localização e Tarifa -->
+        <div>
+          <label class="font-semibold text-sm text-slate-200">3️⃣ Onde você está? (tarifa de energia)</label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+            <select id="estado" class="bg-slate-700/80 rounded-xl p-2.5 text-sm border border-slate-600 focus:border-emerald-500 focus:outline-none"></select>
+            <input id="cidade" type="text" placeholder="Cidade (ex: Pinheiro)" class="bg-slate-700/80 rounded-xl p-2.5 text-sm border border-slate-600 focus:border-emerald-500 focus:outline-none">
+          </div>
+          <div class="flex gap-2 mt-2 items-center">
+            <label class="text-sm whitespace-nowrap text-slate-300">Tarifa R$/kWh:</label>
+            <input id="tarifa" type="number" min="0" step="0.01" class="flex-1 bg-slate-700/80 rounded-xl p-2.5 text-sm border border-slate-600 focus:border-emerald-500 focus:outline-none">
+            <button id="btnWeb" type="button" class="bg-sky-600 hover:bg-sky-500 rounded-xl px-3.5 py-2.5 text-sm font-medium transition shadow">🔎 Buscar</button>
+          </div>
+          <p id="tarifaInfo" class="text-xs text-slate-400 mt-1"></p>
+        </div>
+
+        <!-- Acabamento -->
+        <div>
+          <label class="font-semibold text-sm text-slate-200">5️⃣ Tipo de acabamento</label>
+          <select id="acabamento" class="w-full bg-slate-700/80 rounded-xl p-2.5 mt-1 text-sm border border-slate-600 focus:border-emerald-500 focus:outline-none">
+            <option value="2.5">Apenas impressa / bruta (2,5x)</option>
+            <option value="2.75">Troca de cores no fatiador / Multicolor (2,75x)</option>
+            <option value="3">Acabamento manual (lixa, pintura, montagem) (3x)</option>
+          </select>
+        </div>
+
+        <!-- NOVO MÓDULO: INSUMOS E EMBALAGENS ADICIONAIS -->
+        <div class="bg-amber-950/30 rounded-xl p-3.5 space-y-3 border border-amber-500/40">
+          <div class="flex justify-between items-center flex-wrap gap-2">
+            <span class="font-semibold text-sm text-amber-300">📦 Insumos & Embalagens (Extras)</span>
+            <button id="btnAddInsumo" type="button" class="bg-amber-600 hover:bg-amber-500 text-white rounded-lg px-3 py-1.5 text-xs font-semibold transition shadow">
+              + Adicionar Extra
+            </button>
+          </div>
+          <p class="text-[11px] text-slate-300">Inclua argolas/correntes de chaveiro, saquinhos celofane, adesivos, plástico bolha, etc.</p>
+          
+          <div id="listaInsumos" class="space-y-2"></div>
+
+          <details class="text-xs text-slate-300 pt-1">
+            <summary class="cursor-pointer text-amber-300 font-medium py-1">➕ Cadastrar novo insumo na lista</summary>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
+              <input id="novoInsNome" type="text" placeholder="Ex: Caixa Kraft P" class="sm:col-span-2 bg-slate-700 rounded-lg p-2 text-xs border border-slate-600">
+              <input id="novoInsValor" type="number" min="0" step="0.01" placeholder="R$ unit." class="bg-slate-700 rounded-lg p-2 text-xs border border-slate-600">
+              <button id="btnSalvarIns" type="button" class="sm:col-span-3 bg-emerald-600 hover:bg-emerald-500 rounded-lg p-2 text-xs font-semibold text-white transition">Salvar na Lista</button>
+            </div>
+          </details>
+
+          <div class="flex justify-between items-center bg-slate-900/80 rounded-xl p-2.5 text-xs border border-slate-700/60">
+            <span class="text-slate-300">Total de extras no pedido:</span>
+            <strong id="rInsumosTotalBox" class="text-amber-300 font-mono text-sm">R$ 0,00</strong>
+          </div>
+        </div>
+
+        <!-- Equipamentos -->
+        <div class="bg-slate-700/40 rounded-xl p-3.5 space-y-3 border border-slate-600">
+          <div class="flex justify-between items-center flex-wrap gap-2">
+            <span class="font-semibold text-sm text-emerald-300">🖨️ Equipamentos em uso</span>
+          </div>
+
+          <div class="space-y-2">
+            <div class="flex justify-between items-center gap-2">
+              <label class="text-xs font-semibold text-slate-300">Impressoras 3D (W)</label>
+              <button id="btnAddImp" type="button" class="bg-emerald-700 hover:bg-emerald-600 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition">+ Impressora</button>
+            </div>
+            <div id="listaImps" class="space-y-2"></div>
+          </div>
+
+          <div class="space-y-2 pt-2 border-t border-slate-600">
+            <div class="flex justify-between items-center gap-2">
+              <label class="text-xs font-semibold text-slate-300">Caixas Secadoras / CFS / ACE</label>
+              <button id="btnAddSec" type="button" class="bg-indigo-600 hover:bg-indigo-500 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition">+ Secadora/CFS</button>
+            </div>
+            <div id="listaSecs" class="space-y-2"></div>
+          </div>
+
+          <details class="text-xs text-slate-300 pt-1">
+            <summary class="cursor-pointer text-sky-300 font-medium py-1">➕ Cadastrar modelo próprio</summary>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
+              <select id="novoEqTipo" class="bg-slate-700 rounded-lg p-2 text-xs border border-slate-600">
+                <option value="imp">Impressora</option>
+                <option value="sec">Secadora/CFS</option>
+              </select>
+              <input id="novoEqNome" type="text" placeholder="Nome" class="sm:col-span-2 bg-slate-700 rounded-lg p-2 text-xs border border-slate-600">
+              <input id="novoEqWatts" type="number" min="1" placeholder="Watts (ex: 150)" class="sm:col-span-2 bg-slate-700 rounded-lg p-2 text-xs border border-slate-600">
+              <button id="btnSalvarEq" type="button" class="bg-emerald-600 hover:bg-emerald-500 rounded-lg p-2 text-xs font-semibold">Salvar</button>
+            </div>
+          </details>
+
+          <div class="flex justify-between items-center bg-slate-900/70 rounded-xl p-2.5 text-xs">
+            <span class="text-slate-300">Consumo total combinado:</span>
+            <strong id="rWattsTotal" class="text-amber-300 font-mono text-sm">0 W</strong>
+          </div>
+        </div>
+
+        <!-- Ajustes Avançados -->
+        <details class="bg-slate-700/40 rounded-xl p-3 border border-slate-600/60">
+          <summary class="cursor-pointer text-sm text-slate-300 font-medium">⚙️ Ajustes avançados (Depreciação, Perda, Piso)</summary>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 text-sm">
+            <label class="text-xs text-slate-300">Depreciação (R$/hora)
+              <input id="deprec" type="number" value="1.5" min="0" step="0.1" class="w-full bg-slate-700 rounded-lg p-2 mt-1 text-sm border border-slate-600">
+            </label>
+            <label class="text-xs text-slate-300">Margem de perda/falhas (%)
+              <input id="perda" type="number" value="0" min="0" class="w-full bg-slate-700 rounded-lg p-2 mt-1 text-sm border border-slate-600">
+            </label>
+            <label class="text-xs text-slate-300">Piso de segurança (x do custo)
+              <input id="pisoMult" type="number" value="1.8" step="0.05" min="1" class="w-full bg-slate-700 rounded-lg p-2 mt-1 text-sm border border-slate-600">
+            </label>
+            <label class="text-xs text-slate-300">Multiplicador personalizado
+              <input id="multCustom" type="number" step="0.05" min="0" placeholder="(opcional)" class="w-full bg-slate-700 rounded-lg p-2 mt-1 text-sm border border-slate-600">
+            </label>
+          </div>
+        </details>
+      </section>
+
+      <!-- COLUNA DIREITA: RESULTADOS -->
+      <section class="bg-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl border border-slate-700/70 flex flex-col justify-between space-y-4">
+        <div>
+          <h2 class="text-lg sm:text-xl font-bold mb-3 text-slate-100">📊 Resultado da Peça / Arquivo Atual</h2>
+          
+          <!-- Discriminação de Custos -->
+          <dl class="space-y-2 text-sm">
+            <div class="flex justify-between"><dt class="text-slate-300">🧵 Custo do filamento (<span id="rQtdFilLabel">1</span> un.)</dt><dd id="rFil" class="font-mono"></dd></div>
+            <div class="flex justify-between"><dt class="text-slate-300">⚡ Energia elétrica <span id="rKwh" class="text-xs text-slate-400"></span></dt><dd id="rEner" class="font-mono"></dd></div>
+            <div class="flex justify-between"><dt class="text-slate-300">🛠️ Depreciação da máquina</dt><dd id="rDep" class="font-mono"></dd></div>
+            <div id="linhaPerda" class="flex justify-between hidden"><dt class="text-slate-300">♻️ Margem de perda</dt><dd id="rPerda" class="font-mono"></dd></div>
+            <div id="linhaInsumos" class="flex justify-between hidden text-amber-300 font-medium"><dt>📦 Insumos e embalagens extras</dt><dd id="rInsumos" class="font-mono"></dd></div>
+            <hr class="border-slate-700">
+            <div class="flex justify-between text-base font-semibold"><dt>Custo Total do Pedido (<span id="rQtdCustoLabel">1</span> un.)</dt><dd id="rBase" class="font-mono text-amber-300"></dd></div>
+          </dl>
+
+          <!-- Destaque Preço Sugerido -->
+          <div class="mt-4 bg-emerald-900/40 border border-emerald-500/40 rounded-2xl p-4 text-center shadow-inner">
+            <p class="text-xs text-emerald-200">💰 Preço sugerido total (<span id="rMult"></span>x) · <span id="rQtdInfo">1 un.</span></p>
+            <p id="rVenda" class="text-3xl sm:text-4xl font-extrabold text-emerald-400 my-1"></p>
+            <p class="text-xs text-slate-300">Lucro total estimado: <span id="rLucro" class="font-semibold text-emerald-300"></span></p>
+          </div>
+
+          <!-- Lote de Arquivos -->
+          <div class="mt-4 bg-sky-950/40 border border-sky-500/40 rounded-xl p-3.5 space-y-2.5">
+            <div class="flex justify-between items-center">
+              <p class="font-semibold text-sm text-sky-300">📦 Lote de Arquivos do Cliente</p>
+              <span id="badgeCarrinho" class="text-xs bg-sky-700 px-2.5 py-0.5 rounded-lg font-semibold">0 arquivos</span>
+            </div>
+            <p class="text-xs text-slate-300">Adicione itens manualmente ou importe vários .GCODE de uma vez!</p>
+            <button id="btnAddItemLote" type="button" class="w-full bg-sky-600 hover:bg-sky-500 rounded-xl py-2.5 px-3 text-sm font-bold transition shadow">
+              ➕ Adicionar arquivo atual ao lote
+            </button>
+
+            <div id="boxCarrinho" class="hidden space-y-2 pt-2 border-t border-slate-700">
+              <div id="listaCarrinho" class="space-y-1.5 max-h-[180px] overflow-auto"></div>
+              <div class="flex justify-between items-center bg-slate-900/80 p-2.5 rounded-xl text-sm">
+                <span class="text-slate-300">Total acumulado do lote:</span>
+                <strong id="rTotalLote" class="text-emerald-400 text-lg">R$ 0,00</strong>
+              </div>
+              <button id="btnLimparLote" type="button" class="text-xs text-red-400 hover:underline py-1">🗑️ Limpar lote</button>
+            </div>
+          </div>
+
+          <!-- Desconto -->
+          <div class="mt-4 bg-slate-700/40 rounded-xl p-3.5 space-y-2 border border-slate-600/60">
+            <p class="font-semibold text-sm">🏷️ Desconto para o cliente</p>
+            <div class="grid grid-cols-3 gap-2">
+              <select id="descTipo" class="bg-slate-700 rounded-xl p-2.5 text-sm border border-slate-600">
+                <option value="%">%</option>
+                <option value="R$">R$</option>
+              </select>
+              <input id="descValor" type="number" min="0" step="any" value="0" class="col-span-2 bg-slate-700 rounded-xl p-2.5 text-sm border border-slate-600" placeholder="Valor">
+            </div>
+            <div class="flex justify-between text-xs"><span class="text-slate-300">Desconto máximo seguro:</span><span id="rDescMax" class="font-semibold text-sky-300"></span></div>
+            <button id="btnDescMax" type="button" class="w-full bg-sky-700 hover:bg-sky-600 rounded-xl py-2 text-xs font-semibold transition">
+              Usar o desconto máximo seguro
+            </button>
+            
+            <div id="boxDesc" class="hidden rounded-xl p-3 text-sm space-y-1">
+              <div class="flex justify-between items-center text-xs">
+                <span class="opacity-80">Valor original</span>
+                <span id="rOrigRiscado" class="line-through text-red-400 font-semibold font-mono"></span>
+              </div>
+              <div class="flex justify-between items-center text-xs pb-1.5 border-b border-white/10">
+                <span class="opacity-80">Desconto aplicado</span>
+                <span id="rDescAbatido" class="text-red-300 font-semibold font-mono"></span>
+              </div>
+              <div class="flex justify-between items-center pt-0.5">
+                <span>Preço final com desconto</span>
+                <b id="rFinal" class="text-lg"></b>
+              </div>
+              <div class="flex justify-between items-center">
+                <span>Lucro total que sobra</span>
+                <b id="rLucroFinal"></b>
+              </div>
+              <p id="rAviso" class="pt-1 font-semibold"></p>
+            </div>
+          </div>
+
+          <!-- Conclusão e PDF -->
+          <div class="mt-4 bg-slate-700/40 rounded-xl p-3.5 space-y-3 border border-slate-600/60">
+            <p class="font-semibold text-sm">📄 Conclusão & Geração de PDF</p>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <input id="pdfCliente" type="text" placeholder="Nome do cliente" class="bg-slate-700 rounded-xl p-2.5 text-sm border border-slate-600">
+              <input id="pdfTelefone" type="text" placeholder="WhatsApp (ex: 98984000000)" class="bg-slate-700 rounded-xl p-2.5 text-sm border border-slate-600">
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <input id="pdfValidade" type="number" min="1" value="7" title="Validade em dias" class="bg-slate-700 rounded-xl p-2.5 text-sm border border-slate-600" placeholder="Validade (dias)">
+              <button id="btnSalvar" type="button" class="bg-emerald-600 hover:bg-emerald-500 rounded-xl py-2.5 text-sm font-semibold transition shadow">
+                ✅ Salvar na Nuvem
+              </button>
+            </div>
+
+            <textarea id="pdfObs" rows="2" placeholder="Observações gerais (cores, prazo, embalagem...)" class="w-full bg-slate-700 rounded-xl p-2.5 text-sm border border-slate-600"></textarea>
+            
+            <div class="grid grid-cols-3 gap-2">
+              <button id="btnNovo" type="button" class="bg-slate-600 hover:bg-slate-500 rounded-xl py-2.5 text-xs font-semibold transition">🆕 Novo</button>
+              <button id="btnPdfCliente" type="button" class="bg-rose-600 hover:bg-rose-500 rounded-xl py-2.5 text-xs font-bold flex items-center justify-center gap-1 shadow transition">📄 PDF Cliente</button>
+              <button id="btnPdfInterno" type="button" class="bg-amber-600 hover:bg-amber-500 rounded-xl py-2.5 text-xs font-bold flex items-center justify-center gap-1 shadow transition">📊 PDF Loja</button>
+            </div>
+
+            <p id="statusSalvo" class="text-xs text-emerald-300 min-h-[1rem]"></p>
+          </div>
+        </div>
+
+        <!-- Botão WhatsApp -->
+        <button id="btnWhatsapp" type="button" class="mt-4 w-full bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl py-3.5 font-bold text-sm transition shadow-lg flex items-center justify-center gap-2">
+          💬 Enviar Orçamento no WhatsApp
+        </button>
+      </section>
+    </div>
+  </div>
+
+  <!-- ABA 2: ORÇAMENTOS SALVOS -->
+  <div id="abaLista" class="hidden">
+    <div class="bg-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl border border-slate-700/70">
+      <div class="flex flex-wrap gap-2 items-center mb-4">
+        <input id="busca" type="search" placeholder="🔎 Buscar por nome do cliente, peça ou número..." class="flex-1 min-w-[200px] bg-slate-700 rounded-xl p-2.5 border border-slate-600 text-sm">
+        <button id="btnSincronizar" type="button" class="bg-sky-700 hover:bg-sky-600 rounded-xl px-4 py-2.5 text-sm font-medium transition shadow">🔄 Atualizar da Nuvem</button>
+      </div>
+
+      <!-- Filtros de Status -->
+      <div class="flex gap-2 mb-4 text-xs font-semibold">
+        <button id="filtroStatusTodos" type="button" class="px-3.5 py-2 rounded-xl bg-emerald-700 text-white transition">Todos</button>
+        <button id="filtroStatusPendentes" type="button" class="px-3.5 py-2 rounded-xl bg-slate-700 text-slate-300 hover:bg-slate-600 transition">Pendentes ⏳</button>
+        <button id="filtroStatusConcluidos" type="button" class="px-3.5 py-2 rounded-xl bg-slate-700 text-slate-300 hover:bg-slate-600 transition">Concluídos ✅</button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <p class="text-sm font-semibold text-slate-300 mb-2">Clientes</p>
+          <div id="listaClientes" class="space-y-1.5 max-h-[480px] overflow-auto"></div>
+        </div>
+        <div class="md:col-span-2">
+          <p class="text-sm font-semibold text-slate-300 mb-2">Orçamentos <span id="tituloFiltro" class="text-slate-400 font-normal"></span></p>
+          <div id="listaOrc" class="space-y-3 max-h-[480px] overflow-auto"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="text-xs text-slate-500 mt-8 text-center">
+    Alien 3D · Ferramenta de Gestão de Impressão 3D e Custos Operacionais.
+  </footer>
+</div>
+
+<!-- MODAL DE ESCOLHA DO WHATSAPP -->
+<div id="modalWhatsapp" class="hidden fixed inset-0 bg-black/75 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+  <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+    <h3 class="text-lg font-bold text-emerald-400">💬 Escolher WhatsApp</h3>
+    <p class="text-xs text-slate-300">Como você deseja enviar a mensagem para o cliente?</p>
+    <div class="space-y-2.5">
+      <a id="linkWppNormal" href="#" target="_blank" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition shadow">
+        📱 WhatsApp Normal
+      </a>
+      <a id="linkWppBusiness" href="#" target="_blank" class="w-full bg-sky-600 hover:bg-sky-500 text-white py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition shadow">
+        💼 WhatsApp Business
+      </a>
+    </div>
+    <button id="fecharModalWpp" type="button" class="w-full bg-slate-700 hover:bg-slate-600 text-slate-300 py-2.5 rounded-xl text-xs font-semibold transition">
+      Cancelar
+    </button>
+  </div>
+</div>
+
+<!-- MODAL DE MENSAGEM / CONFIRMAÇÃO CUSTOMIZADA (Sem alert/confirm nativo) -->
+<div id="modalAviso" class="hidden fixed inset-0 bg-black/75 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+  <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+    <h3 id="modalAvisoTitulo" class="text-lg font-bold text-emerald-400">Aviso</h3>
+    <p id="modalAvisoTexto" class="text-sm text-slate-200"></p>
+    <div id="modalAvisoBotoes" class="flex gap-2 justify-end pt-2"></div>
+  </div>
+</div>
+
+<script>
+// URL do Web App do Google Apps Script
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzR0k0oqO43PMwRxh8cIK9E7hJJ3dv6SQbG1SLbqCf1xvyLymOI62ym84KQbjghMGZ4Pw/exec';
+
+const $ = id => document.getElementById(id);
+
+// Helper para substituir alert() e confirm() nativos por modais elegantes
+function exibirAviso(titulo, mensagem) {
+  $('modalAvisoTitulo').textContent = titulo;
+  $('modalAvisoTexto').textContent = mensagem;
+  $('modalAvisoBotoes').innerHTML = `<button id="btnFecharAviso" type="button" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-semibold transition">Entendi</button>`;
+  $('modalAviso').classList.remove('hidden');
+  $('btnFecharAviso').onclick = () => $('modalAviso').classList.add('hidden');
+}
+
+function exibirConfirmacao(titulo, mensagem) {
+  return new Promise(resolve => {
+    $('modalAvisoTitulo').textContent = titulo;
+    $('modalAvisoTexto').textContent = mensagem;
+    $('modalAvisoBotoes').innerHTML = `
+      <button id="btnCancelarConf" type="button" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-4 py-2 rounded-xl text-xs font-semibold transition">Cancelar</button>
+      <button id="btnConfirmarConf" type="button" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-xl text-xs font-semibold transition">Confirmar</button>
+    `;
+    $('modalAviso').classList.remove('hidden');
+    $('btnCancelarConf').onclick = () => { $('modalAviso').classList.add('hidden'); resolve(false); };
+    $('btnConfirmarConf').onclick = () => { $('modalAviso').classList.add('hidden'); resolve(true); };
+  });
+}
+
+// Catálogo Padrão de Insumos e Embalagens
+const INSUMOS_PADRAO = [
+  { nome: 'Argola c/ Corrente (Chaveiro)', valor: 0.35 },
+  { nome: 'Mosquetão / Fecho Lagosta', valor: 0.85 },
+  { nome: 'Saquinho Celofane / Plástico', valor: 0.15 },
+  { nome: 'Adesivo Personalizado Alien 3D', valor: 0.40 },
+  { nome: 'Plástico Bolha (por embalagem)', valor: 0.50 },
+  { nome: 'Tag / Cartão de Agradecimento', valor: 0.30 },
+  { nome: 'Ímã de Neodímio', valor: 0.60 },
+  { nome: 'Outro item avulso', valor: 0.00 }
+];
+
+// Catálogo de Impressoras
+const IMPRESSORAS_PADRAO = [
+  {marca:'Flashforge', modelo:'Flashforge Adventurer 5M (AD5M)', watts:140},
+  {marca:'Flashforge', modelo:'Flashforge Adventurer 5M Pro (AD5M Pro)', watts:150},
+  {marca:'Flashforge', modelo:'Flashforge AD5X (Multicolor)', watts:160},
+  {marca:'Flashforge', modelo:'Flashforge Adventurer 4 / 4 Pro', watts:135},
+  {marca:'Flashforge', modelo:'Flashforge Adventurer 3', watts:95},
+  {marca:'Flashforge', modelo:'Flashforge Guider 2 / 2S / 3', watts:220},
+  {marca:'Bambu Lab', modelo:'Bambu Lab A1 Mini', watts:75},
+  {marca:'Bambu Lab', modelo:'Bambu Lab A1', watts:110},
+  {marca:'Bambu Lab', modelo:'Bambu Lab P1P', watts:120},
+  {marca:'Bambu Lab', modelo:'Bambu Lab P1S', watts:130},
+  {marca:'Bambu Lab', modelo:'Bambu Lab X1 Carbon (X1C)', watts:145},
+  {marca:'Creality', modelo:'Creality Ender-3 / Ender-3 Pro', watts:120},
+  {marca:'Creality', modelo:'Creality Ender-3 V2 / Neo', watts:130},
+  {marca:'Creality', modelo:'Creality Ender-3 S1 / S1 Pro', watts:145},
+  {marca:'Creality', modelo:'Creality Ender-3 V3 SE', watts:135},
+  {marca:'Creality', modelo:'Creality Ender-3 V3 KE', watts:150},
+  {marca:'Creality', modelo:'Creality K1 / K1C', watts:160},
+  {marca:'Creality', modelo:'Creality K1 Max', watts:230},
+  {marca:'Creality', modelo:'Creality K2 Plus / K2 Combo', watts:280},
+  {marca:'Anycubic', modelo:'Anycubic Kobra 2 / 2 Pro', watts:150},
+  {marca:'Anycubic', modelo:'Anycubic Kobra 3 / Kobra 3 Combo', watts:160},
+  {marca:'Elegoo', modelo:'Elegoo Neptune 4 / Neptune 4 Pro', watts:155},
+  {marca:'Elegoo', modelo:'Elegoo Centauri Carbon / Centauri Carbon 2', watts:170},
+  {marca:'Prusa', modelo:'Prusa MK4 / MK4S', watts:130},
+  {marca:'Sovol', modelo:'Sovol SV06 / SV06 Plus', watts:155},
+  {marca:'Sovol', modelo:'Sovol SV08 (CoreXY 350mm)', watts:280}
+];
+
+// Catálogo de Secadoras / Sistemas Multicolor
+const SECADORAS_PADRAO = [
+  {marca:'Creality', modelo:'Creality CFS (Color Filament System)', watts:35},
+  {marca:'Creality', modelo:'Creality Space Pi (1 rolo)', watts:65},
+  {marca:'Creality', modelo:'Creality Space Pi Plus (2 rolos)', watts:115},
+  {marca:'Anycubic', modelo:'Anycubic ACE Pro (Modo Impressão)', watts:45},
+  {marca:'Anycubic', modelo:'Anycubic ACE Pro (Secagem Ativa)', watts:120},
+  {marca:'Bambu Lab', modelo:'Bambu Lab AMS / AMS Lite', watts:15},
+  {marca:'Bambu Lab', modelo:'Bambu Lab AMS 2 Pro (Secagem)', watts:85},
+  {marca:'Sunlu', modelo:'Sunlu FilaDryer S2 (1 rolo 360°)', watts:42},
+  {marca:'Sunlu', modelo:'Sunlu FilaDryer S4 (4 rolos)', watts:165},
+  {marca:'eSUN', modelo:'eSUN eBOX / eBOX Lite', watts:36},
+  {marca:'Flashforge', modelo:'Flashforge IFS (AD5X)', watts:25}
+];
+
+// Tarifas Médias por Estado
+const TARIFAS = {
+  AC:0.95, AL:0.95, AP:0.85, AM:0.98, BA:0.90, CE:0.88, DF:0.85, ES:0.88, GO:0.90,
+  MA:1.00, MT:1.00, MS:1.00, MG:0.97, PA:1.05, PB:0.85, PR:0.80, PE:0.90, PI:1.00,
+  RJ:1.05, RN:0.85, RS:0.90, RO:0.95, RR:0.85, SC:0.80, SP:0.85, SE:0.85, TO:1.00
+};
+const NOMES = {AC:'Acre',AL:'Alagoas',AP:'Amapá',AM:'Amazonas',BA:'Bahia',CE:'Ceará',DF:'Distrito Federal',ES:'Espírito Santo',GO:'Goiás',MA:'Maranhão',MT:'Mato Grosso',MS:'Mato Grosso do Sul',MG:'Minas Gerais',PA:'Pará',PB:'Paraíba',PR:'Paraná',PE:'Pernambuco',PI:'Piauí',RJ:'Rio de Janeiro',RN:'Rio Grande do Norte',RS:'Rio Grande do Sul',RO:'Rondônia',RR:'Roraima',SC:'Santa Catarina',SP:'São Paulo',SE:'Sergipe',TO:'Tocantins'};
+
+const brl = v => Number(v || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+const esc = t => String(t||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+let memoriaOrcamentos = [];
+
+// ===== GERENCIAMENTO DE INSUMOS EXTRAS =====
+const CHAVE_INS = 'alien3d_insumos_extra';
+function getInsumosExtras() {
+  try { return JSON.parse(localStorage.getItem(CHAVE_INS) || '[]'); } catch { return []; }
+}
+function salvarInsumosExtras(arr) { localStorage.setItem(CHAVE_INS, JSON.stringify(arr)); }
+function getTodosInsumos() { return [...INSUMOS_PADRAO, ...getInsumosExtras()]; }
+
+let insumosSelecionados = [];
+
+function renderInsumos() {
+  const todos = getTodosInsumos();
+  if (insumosSelecionados.length === 0) {
+    $('listaInsumos').innerHTML = `<p class="text-xs text-slate-400 italic">Nenhum insumo extra adicionado neste orçamento.</p>`;
+    calcular();
+    return;
+  }
+  $('listaInsumos').innerHTML = insumosSelecionados.map((item, idx) => {
+    const opts = todos.map(it => `<option value="${esc(it.nome)}" ${it.nome === item.nome ? 'selected' : ''}>${esc(it.nome)}</option>`).join('');
+    return `
+      <div class="bg-slate-800/90 border border-slate-700 rounded-xl p-2.5 space-y-2">
+        <div class="flex gap-1.5 items-center">
+          <select data-ins-idx="${idx}" class="sel-ins flex-1 min-w-0 truncate bg-slate-700 rounded-lg p-1.5 text-xs border border-slate-600">${opts}</select>
+          <button data-ins-del="${idx}" type="button" class="btn-ins-del shrink-0 bg-slate-600 hover:bg-red-600 rounded-lg px-2 py-1.5 text-xs transition">✕</button>
+        </div>
+        <div class="grid grid-cols-3 gap-2 items-center text-xs">
+          <div>
+            <span class="text-[10px] text-slate-400 block">Qtd</span>
+            <input data-ins-qtd="${idx}" type="number" min="0" step="1" value="${item.qtd}" class="inp-ins-qtd w-full bg-slate-700 rounded-lg p-1.5 text-center border border-slate-600">
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-400 block">Valor Unit. (R$)</span>
+            <input data-ins-val="${idx}" type="number" min="0" step="0.01" value="${item.valor}" class="inp-ins-val w-full bg-slate-700 rounded-lg p-1.5 text-right border border-slate-600">
+          </div>
+          <div class="text-right">
+            <span class="text-[10px] text-slate-400 block">Subtotal</span>
+            <strong class="text-amber-300 font-mono">${brl(item.qtd * item.valor)}</strong>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+  calcular();
+}
+
+function calcularInsumosTotais() {
+  let total = 0;
+  let resumo = [];
+  insumosSelecionados.forEach(i => {
+    const sub = (parseFloat(i.qtd) || 0) * (parseFloat(i.valor) || 0);
+    total += sub;
+    if (sub > 0) resumo.push(`${i.qtd}x ${i.nome} (${brl(sub)})`);
+  });
+  return { total, resumo: resumo.join(', ') };
+}
+
+$('btnAddInsumo').addEventListener('click', () => {
+  const primeiro = getTodosInsumos()[0];
+  const qtdPadrao = Math.max(1, parseInt($('pdfQtd').value) || 1);
+  insumosSelecionados.push({ nome: primeiro.nome, qtd: qtdPadrao, valor: primeiro.valor });
+  renderInsumos();
+});
+
+$('listaInsumos').addEventListener('change', e => {
+  if (e.target.classList.contains('sel-ins')) {
+    const idx = +e.target.dataset.insIdx;
+    const novoNome = e.target.value;
+    const enc = getTodosInsumos().find(x => x.nome === novoNome);
+    insumosSelecionados[idx].nome = novoNome;
+    if (enc) insumosSelecionados[idx].valor = enc.valor;
+    renderInsumos();
+  }
+});
+
+$('listaInsumos').addEventListener('input', e => {
+  if (e.target.classList.contains('inp-ins-qtd')) {
+    const idx = +e.target.dataset.insQtd;
+    insumosSelecionados[idx].qtd = Math.max(0, parseFloat(e.target.value) || 0);
+    const card = e.target.closest('div.bg-slate-800\\/90');
+    if (card) card.querySelector('strong').textContent = brl(insumosSelecionados[idx].qtd * insumosSelecionados[idx].valor);
+    calcular();
+  } else if (e.target.classList.contains('inp-ins-val')) {
+    const idx = +e.target.dataset.insVal;
+    insumosSelecionados[idx].valor = Math.max(0, parseFloat(e.target.value) || 0);
+    const card = e.target.closest('div.bg-slate-800\\/90');
+    if (card) card.querySelector('strong').textContent = brl(insumosSelecionados[idx].qtd * insumosSelecionados[idx].valor);
+    calcular();
+  }
+});
+
+$('listaInsumos').addEventListener('click', e => {
+  const b = e.target.closest('.btn-ins-del');
+  if (b) {
+    insumosSelecionados.splice(+b.dataset.insDel, 1);
+    renderInsumos();
+  }
+});
+
+$('btnSalvarIns').addEventListener('click', () => {
+  const nome = $('novoInsNome').value.trim();
+  const valor = parseFloat($('novoInsValor').value) || 0;
+  if (!nome) { exibirAviso('Campo obrigatório', 'Informe o nome do insumo que deseja cadastrar.'); return; }
+  const ex = getInsumosExtras();
+  ex.push({ nome, valor });
+  salvarInsumosExtras(ex);
+  $('novoInsNome').value = '';
+  $('novoInsValor').value = '';
+  renderInsumos();
+  exibirAviso('Insumo Cadastrado', `"${nome}" foi salvo na sua lista rápida!`);
+});
+
+// ===== CONEXÃO GOOGLE SHEETS =====
+async function carregarDaNuvem() {
+  $('statusSinc').textContent = '🔄 Sincronizando...';
+  try {
+    const res = await fetch(SCRIPT_URL + '?t=' + new Date().getTime());
+    const data = await res.json();
+    if (Array.isArray(data)) {
+      memoriaOrcamentos = data.filter(x => x && x.id !== undefined && x.id !== null && String(x.id).trim() !== '' && x.cliente && String(x.cliente).trim() !== '' && String(x.cliente).trim().toLowerCase() !== 'cliente');
+      $('statusSinc').textContent = '☁️ Conectado ao Google Sheets';
+      renderLista();
+    }
+  } catch (err) {
+    $('statusSinc').textContent = '⚠️ Modo Offline / Erro de rede';
+  }
+}
+
+async function salvarNaNuvem(reg) {
+  $('statusSinc').textContent = '⏳ Salvando na nuvem...';
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(reg)
+    });
+    const text = await res.text();
+    let json;
+    try { json = JSON.parse(text); } catch(e) { json = { status: 'sucesso' }; }
+    if (json.status === 'sucesso') {
+      await carregarDaNuvem();
+      return true;
+    } else {
+      exibirAviso('Erro ao Salvar', 'Erro ao salvar na planilha: ' + (json.message || 'Erro desconhecido'));
+      return false;
+    }
+  } catch (e) {
+    await carregarDaNuvem();
+    return true;
+  }
+}
+
+async function deletarDaNuvem(id) {
+  $('statusSinc').textContent = '⏳ Excluindo da nuvem...';
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ acao: 'deletar', id: String(id) })
+    });
+    
+    // Remove localmente de imediato para resposta instantânea na interface
+    memoriaOrcamentos = memoriaOrcamentos.filter(x => String(x.id) !== String(id));
+    renderLista();
+
+    setTimeout(async () => {
+      await carregarDaNuvem();
+      $('statusSinc').textContent = '☁️ Conectado ao Google Sheets';
+    }, 1200);
+    return true;
+  } catch(e) {
+    await carregarDaNuvem();
+    return true;
+  }
+}
+
+// ===== LEITOR DE G-CODE =====
+function encontrarImpressoraNoCatalogo(textoBruto, textoGcodeCompleto) {
+  const todas = getTodasImpressoras();
+  const fonte = (textoBruto + ' ' + textoGcodeCompleto.slice(0, 4000)).toLowerCase();
+  const regras = [
+    { chaves: ['ad5x'], alvo: 'Flashforge AD5X' },
+    { chaves: ['adventurer 5m pro', 'ad5m pro'], alvo: 'Flashforge Adventurer 5M Pro' },
+    { chaves: ['adventurer 5m', 'ad5m'], alvo: 'Flashforge Adventurer 5M (AD5M)' },
+    { chaves: ['a1 mini'], alvo: 'Bambu Lab A1 Mini' },
+    { chaves: ['bambu lab a1', 'printer_model = a1'], alvo: 'Bambu Lab A1' },
+    { chaves: ['p1p'], alvo: 'Bambu Lab P1P' },
+    { chaves: ['p1s'], alvo: 'Bambu Lab P1S' },
+    { chaves: ['x1c', 'x1 carbon'], alvo: 'Bambu Lab X1 Carbon' },
+    { chaves: ['k2 plus'], alvo: 'Creality K2 Plus' },
+    { chaves: ['k1 max'], alvo: 'Creality K1 Max' },
+    { chaves: ['k1c', 'creality k1'], alvo: 'Creality K1 / K1C' },
+    { chaves: ['ender-3 v3 ke'], alvo: 'Creality Ender-3 V3 KE' },
+    { chaves: ['ender-3 v3 se'], alvo: 'Creality Ender-3 V3 SE' },
+    { chaves: ['ender-3'], alvo: 'Creality Ender-3 / Ender-3 Pro' },
+    { chaves: ['kobra 3'], alvo: 'Anycubic Kobra 3' },
+    { chaves: ['neptune 4'], alvo: 'Elegoo Neptune 4' },
+    { chaves: ['centauri carbon'], alvo: 'Elegoo Centauri Carbon' },
+    { chaves: ['mk4'], alvo: 'Prusa MK4' },
+    { chaves: ['sv08'], alvo: 'Sovol SV08' }
+  ];
+  for (const r of regras) {
+    if (r.chaves.some(c => fonte.includes(c))) {
+      const enc = todas.find(imp => imp.modelo.toLowerCase().includes(r.alvo.toLowerCase()));
+      if (enc) return enc.modelo;
+    }
+  }
+  return null;
+}
+
+function selecionarImpressoraAutomaticamente(modeloEncontrado) {
+  if (!modeloEncontrado) return false;
+  if (impsSelecionadas.length === 0) impsSelecionadas.push({ modelo: modeloEncontrado, qtd: 1 });
+  else impsSelecionadas[0].modelo = modeloEncontrado;
+  renderEquipamentos();
+  return true;
+}
+
+function parseTempoGcode(str) {
+  if (!str) return 0;
+  let totalSegundos = 0;
+  const d = str.match(/(\d+)\s*d/i);
+  const h = str.match(/(\d+)\s*h/i);
+  const m = str.match(/(\d+)\s*m(?!m)/i);
+  const s = str.match(/(\d+(?:\.\d+)?)\s*s/i);
+  if (d) totalSegundos += parseInt(d[1]) * 86400;
+  if (h) totalSegundos += parseInt(h[1]) * 3600;
+  if (m) totalSegundos += parseInt(m[1]) * 60;
+  if (s) totalSegundos += parseFloat(s[1]);
+  if (totalSegundos === 0 && /^\d+(\.\d+)?$/.test(str.trim())) totalSegundos = parseFloat(str.trim());
+  return totalSegundos / 3600;
+}
+
+function extrairDadosGcode(texto) {
+  let gramas = 0, horas = 0, multicolor = false, fatiador = 'Fatiador 3D', impressoraRaw = '';
+  if (/OrcaSlicer/i.test(texto)) fatiador = 'OrcaSlicer';
+  else if (/BambuStudio/i.test(texto)) fatiador = 'Bambu Studio';
+  else if (/PrusaSlicer/i.test(texto)) fatiador = 'PrusaSlicer';
+
+  const mImp = texto.match(/;\s*printer_model\s*=\s*(.+)/i);
+  if (mImp) impressoraRaw = mImp[1];
+  const modeloCatalogo = encontrarImpressoraNoCatalogo(impressoraRaw, texto);
+
+  const mTempo = texto.match(/;\s*estimated printing time.*?=\s*(.+)/i) || texto.match(/;\s*total estimated time:\s*(.+)/i);
+  if (mTempo) horas = parseTempoGcode(mTempo[1]);
+
+  const mPeso = texto.match(/;\s*total filament weight \[g\]\s*:\s*([\d.,\s]+)/i) || texto.match(/;\s*filament used \[g\]\s*=\s*([\d.,\s]+)/i);
+  if (mPeso) {
+    const vals = mPeso[1].split(',').map(v => parseFloat(v.trim())).filter(v => !isNaN(v) && v > 0);
+    if (vals.length > 0) {
+      gramas = vals.reduce((a, b) => a + b, 0);
+      if (vals.length > 1) multicolor = true;
+    }
+  }
+  if (!multicolor && (texto.match(/T[1-9]/g) || []).length > 3) multicolor = true;
+  return { gramas, horas, multicolor, fatiador, modeloCatalogo };
+}
+
+async function lerTextoGcodeRapido(file) {
+  const TAMANHO_BLOCO = 102400;
+  if (file.size <= TAMANHO_BLOCO * 2) return await file.text();
+  const inicio = await file.slice(0, TAMANHO_BLOCO).text();
+  const fim = await file.slice(file.size - TAMANHO_BLOCO, file.size).text();
+  return inicio + '\n' + fim;
+}
+
+async function processarGcodeUnico(file) {
+  if (!file) return;
+  const st = $('statusLeitura'); st.classList.remove('hidden');
+  st.innerHTML = `<span class="text-sky-300">⏳ Lendo <b>${esc(file.name)}</b>...</span>`;
+  try {
+    const texto = await lerTextoGcodeRapido(file);
+    const dados = extrairDadosGcode(texto);
+    if (dados.gramas <= 0 && dados.horas <= 0) {
+      st.innerHTML = `<span class="text-amber-300">⚠️ Não foram encontrados dados de peso/tempo neste G-code.</span>`;
+      return;
+    }
+    selecionarImpressoraAutomaticamente(dados.modeloCatalogo);
+    $('pdfPeca').value = file.name.replace(/\.(gcode|gco|g)$/i, '');
+    $('pesoUn').value = 'g';
+    $('peso').value = dados.gramas.toFixed(1);
+    $('horas').value = dados.horas.toFixed(2);
+    $('pdfQtd').value = '1';
+    $('acabamento').value = dados.multicolor ? '2.75' : '2.5';
+    st.innerHTML = `<div class="text-emerald-300 font-semibold">✅ G-code carregado! Filamento: ${dados.gramas.toFixed(1)}g · Tempo: ${dados.horas.toFixed(2)}h ${dados.multicolor ? '(Multicolor 2,75x)' : ''}</div>`;
+    calcular();
+  } catch (err) { st.innerHTML = `<span class="text-red-400">❌ Erro ao ler arquivo.</span>`; }
+}
+
+async function processarGcodeMultiplos(fileList) {
+  const arquivos = Array.from(fileList || []).filter(f => /\.(gcode|gco|g)$/i.test(f.name));
+  if (arquivos.length === 0) return;
+  if (arquivos.length === 1) return processarGcodeUnico(arquivos[0]);
+  
+  for (const file of arquivos) {
+    try {
+      const texto = await lerTextoGcodeRapido(file);
+      const dados = extrairDadosGcode(texto);
+      if (dados.gramas > 0 || dados.horas > 0) {
+        if (dados.modeloCatalogo) selecionarImpressoraAutomaticamente(dados.modeloCatalogo);
+        const mult = dados.multicolor ? 2.75 : 2.5;
+        const item = montarObjetoItem(file.name.replace(/\.(gcode|gco|g)$/i, ''), 1, dados.gramas, dados.horas, mult, dados.multicolor ? 'Multicolor' : 'Bruta');
+        itensLote.push(item);
+      }
+    } catch(e){}
+  }
+  renderLote(); calcular();
+  $('statusLeitura').classList.remove('hidden');
+  $('statusLeitura').innerHTML = `<span class="text-emerald-300">✅ Lote de ${arquivos.length} arquivo(s) processado com sucesso!</span>`;
+}
+
+const dz = $('dropZone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('border-emerald-400', 'bg-slate-800/80'); });
+dz.addEventListener('dragleave', () => { dz.classList.remove('border-emerald-400', 'bg-slate-800/80'); });
+dz.addEventListener('drop', e => {
+  e.preventDefault();
+  dz.classList.remove('border-emerald-400', 'bg-slate-800/80');
+  if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+    processarGcodeMultiplos(e.dataTransfer.files);
+  }
+});
+
+$('btnGcodeUnico').addEventListener('click', e => { e.stopPropagation(); $('inputGcodeUnico').click(); });
+$('btnGcodeMulti').addEventListener('click', e => { e.stopPropagation(); $('inputGcodeMulti').click(); });
+$('inputGcodeUnico').addEventListener('change', e => { if (e.target.files[0]) processarGcodeUnico(e.target.files[0]); e.target.value = ''; });
+$('inputGcodeMulti').addEventListener('change', e => { if (e.target.files.length > 0) processarGcodeMultiplos(e.target.files); e.target.value = ''; });
+
+// ===== EQUIPAMENTOS =====
+const CHAVE_EQ = 'alien3d_equipamentos_extra';
+function getEquipamentosExtras() {
+  try { return JSON.parse(localStorage.getItem(CHAVE_EQ) || '{"imp":[],"sec":[]}'); } catch { return {imp:[], sec:[]}; }
+}
+function salvarEquipamentosExtras(obj) { localStorage.setItem(CHAVE_EQ, JSON.stringify(obj)); }
+function getTodasImpressoras() { return [...IMPRESSORAS_PADRAO, ...(getEquipamentosExtras().imp || [])]; }
+function getTodasSecadoras() { return [...SECADORAS_PADRAO, ...(getEquipamentosExtras().sec || [])]; }
+
+let impsSelecionadas = [{modelo:'Flashforge Adventurer 5M (AD5M)', qtd:1}];
+let secsSelecionadas = [];
+
+function gerarOptionsAgrupados(lista, selecionado) {
+  const porMarca = {};
+  lista.forEach(item => { (porMarca[item.marca || 'Outros'] = porMarca[item.marca || 'Outros'] || []).push(item); });
+  return Object.entries(porMarca).map(([marca, itens]) => {
+    const opts = itens.map(it => `<option value="${esc(it.modelo)}" ${it.modelo === selecionado ? 'selected' : ''}>${esc(it.modelo)} (${it.watts}W)</option>`).join('');
+    return `<optgroup label="${esc(marca)}">${opts}</optgroup>`;
+  }).join('');
+}
+
+function renderEquipamentos() {
+  const todasImp = getTodasImpressoras(), todasSec = getTodasSecadoras();
+  $('listaImps').innerHTML = impsSelecionadas.map((item, idx) => `
+    <div class="flex gap-1.5 items-center min-w-0">
+      <select data-imp-idx="${idx}" class="sel-imp flex-1 min-w-0 truncate bg-slate-700 rounded-lg p-2 text-xs border border-slate-600">${gerarOptionsAgrupados(todasImp, item.modelo)}</select>
+      <input data-imp-qtd="${idx}" type="number" min="1" value="${item.qtd}" class="inp-imp-qtd w-14 shrink-0 bg-slate-700 rounded-lg p-2 text-xs text-center border border-slate-600">
+      ${impsSelecionadas.length > 1 ? `<button data-imp-del="${idx}" type="button" class="btn-imp-del shrink-0 bg-slate-600 hover:bg-red-600 rounded-lg px-2 py-2 text-xs">✕</button>` : ''}
+    </div>`).join('');
+
+  $('listaSecs').innerHTML = secsSelecionadas.length === 0 ? `<p class="text-xs text-slate-400 italic">Nenhuma secadora.</p>` : secsSelecionadas.map((item, idx) => `
+    <div class="flex gap-1.5 items-center min-w-0">
+      <select data-sec-idx="${idx}" class="sel-sec flex-1 min-w-0 truncate bg-slate-700 rounded-lg p-2 text-xs border border-slate-600">${gerarOptionsAgrupados(todasSec, item.modelo)}</select>
+      <input data-sec-qtd="${idx}" type="number" min="1" value="${item.qtd}" class="inp-sec-qtd w-14 shrink-0 bg-slate-700 rounded-lg p-2 text-xs text-center border border-slate-600">
+      <button data-sec-del="${idx}" type="button" class="btn-sec-del shrink-0 bg-slate-600 hover:bg-red-600 rounded-lg px-2 py-2 text-xs">✕</button>
+    </div>`).join('');
+  calcular();
+}
+
+function calcularWattsTotais() {
+  const todasImp = getTodasImpressoras(), todasSec = getTodasSecadoras();
+  let totalW = 0, resumo = [];
+  impsSelecionadas.forEach(i => { const e = todasImp.find(x => x.modelo === i.modelo) || todasImp[0]; totalW += e.watts * i.qtd; resumo.push(`${i.qtd}x ${e.modelo}`); });
+  secsSelecionadas.forEach(i => { const e = todasSec.find(x => x.modelo === i.modelo) || todasSec[0]; totalW += e.watts * i.qtd; resumo.push(`${i.qtd}x ${e.modelo}`); });
+  return {totalW, resumo: resumo.join(' + ')};
+}
+
+$('btnAddImp').addEventListener('click', () => { impsSelecionadas.push({modelo: getTodasImpressoras()[0].modelo, qtd: 1}); renderEquipamentos(); });
+$('btnAddSec').addEventListener('click', () => { secsSelecionadas.push({modelo: getTodasSecadoras()[0].modelo, qtd: 1}); renderEquipamentos(); });
+$('listaImps').addEventListener('change', e => { if (e.target.classList.contains('sel-imp')) { impsSelecionadas[+e.target.dataset.impIdx].modelo = e.target.value; calcular(); } });
+$('listaImps').addEventListener('input', e => { if (e.target.classList.contains('inp-imp-qtd')) { impsSelecionadas[+e.target.dataset.impQtd].qtd = Math.max(1, +e.target.value); calcular(); } });
+$('listaImps').addEventListener('click', e => { const b = e.target.closest('.btn-imp-del'); if(b){ impsSelecionadas.splice(+b.dataset.impDel, 1); renderEquipamentos(); } });
+
+$('listaSecs').addEventListener('change', e => { if (e.target.classList.contains('sel-sec')) { secsSelecionadas[+e.target.dataset.secIdx].modelo = e.target.value; calcular(); } });
+$('listaSecs').addEventListener('input', e => { if (e.target.classList.contains('inp-sec-qtd')) { secsSelecionadas[+e.target.dataset.secQtd].qtd = Math.max(1, +e.target.value); calcular(); } });
+$('listaSecs').addEventListener('click', e => { const b = e.target.closest('.btn-sec-del'); if(b){ secsSelecionadas.splice(+b.dataset.secDel, 1); renderEquipamentos(); } });
+
+$('estado').innerHTML = Object.entries(NOMES).map(([uf, nome]) => `<option value="${uf}">${nome} (${uf})</option>`).join('');
+function aplicarTarifaEstado(forcar) {
+  const uf = $('estado').value;
+  if (forcar || !parseFloat($('tarifa').value)) $('tarifa').value = TARIFAS[uf].toFixed(2);
+  $('tarifaInfo').textContent = `Média para ${NOMES[uf]}.`;
+  calcular();
+}
+$('estado').addEventListener('change', () => aplicarTarifaEstado(true));
+
+// ===== LOTE E CÁLCULOS =====
+let itensLote = [];
+function renderLote() {
+  $('badgeCarrinho').textContent = `${itensLote.length} arquivo(s)`;
+  $('boxCarrinho').classList.toggle('hidden', itensLote.length === 0);
+  $('listaCarrinho').innerHTML = itensLote.map((it, idx) => `
+    <div class="bg-slate-800 rounded-xl p-2.5 text-xs flex justify-between items-center gap-2 border border-slate-700">
+      <div class="flex-1 min-w-0"><p class="font-bold text-slate-100 truncate">${idx+1}. ${esc(it.peca)} (${it.qtd} un. - ${(it.horas * it.qtd).toFixed(1)}h)</p></div>
+      <button data-lote-del="${idx}" type="button" class="text-red-400 hover:underline">Remover</button>
+    </div>`).join('');
+}
+$('listaCarrinho').addEventListener('click', e => { const b = e.target.closest('button[data-lote-del]'); if(b){ itensLote.splice(+b.dataset.loteDel, 1); renderLote(); calcular(); } });
+$('btnLimparLote').addEventListener('click', () => { itensLote = []; renderLote(); calcular(); });
+
+let ultimo = null;
+function montarObjetoItem(peca, qtd, gramas, horas, multCustomVal, acabTextoCustom) {
+  const tarifa = parseFloat($('tarifa').value||0), precoKg = parseFloat($('precoKg').value||0);
+  const eq = calcularWattsTotais(), watts = eq.totalW, deprecHora = parseFloat($('deprec').value||0);
+  const perdaPct = parseFloat($('perda').value||0) / 100, mult = parseFloat($('multCustom').value) > 0 ? parseFloat($('multCustom').value) : multCustomVal;
+  const filamento = (gramas / 1000) * precoKg, kwh = (watts / 1000) * horas, energia = kwh * tarifa, deprec = horas * deprecHora;
+  const subtotal = filamento + energia + deprec, perda = subtotal * perdaPct, base = subtotal + perda, venda = base * mult;
+  return { peca: peca || 'Peça impressa em 3D', qtd, gramas, horas, tarifa, precoKg, watts, eqResumo: eq.resumo, deprecHora, perdaPct, mult, filamento, kwh, energia, deprec, perda, base, venda, acab: acabTextoCustom };
+}
+
+function obterDadosItemAtual() {
+  const gramas = $('pesoUn').value === 'kg' ? parseFloat($('peso').value||0) * 1000 : parseFloat($('peso').value||0);
+  const horas = parseFloat($('horas').value||0), multBase = parseFloat($('acabamento').value);
+  const qtd = Math.max(1, parseInt($('pdfQtd').value) || 1), acabTxt = $('acabamento').selectedOptions[0].text.replace(/\s*\(.*$/,'');
+  return montarObjetoItem($('pdfPeca').value.trim(), qtd, gramas, horas, multBase, acabTxt);
+}
+
+function calcular() {
+  const itemAtual = obterDadosItemAtual();
+  const ins = calcularInsumosTotais();
+  $('rInsumosTotalBox').textContent = brl(ins.total);
+  $('rWattsTotal').textContent = `${itemAtual.watts} W`;
+  $('rQtdFilLabel').textContent = itemAtual.qtd; $('rQtdCustoLabel').textContent = itemAtual.qtd;
+
+  const horasUnit = itemAtual.horas;
+  const qtdAtual = itemAtual.qtd;
+  let horasTotalPecas = horasUnit * qtdAtual;
+  let somaHorasLote = 0;
+  itensLote.forEach(it => { somaHorasLote += (it.horas * it.qtd); });
+  const horasTotalGeral = (itensLote.length > 0 ? somaHorasLote : 0) + horasTotalPecas;
+  
+  const hInt = Math.floor(horasTotalGeral);
+  const mInt = Math.round((horasTotalGeral - hInt) * 60);
+  $('rTempoTotalVisual').textContent = `${horasTotalGeral.toFixed(1).replace('.', ',')} horas (${hInt}h ${mInt}min)`;
+
+  $('rFil').textContent = brl(itemAtual.filamento * itemAtual.qtd);
+  $('rEner').textContent = brl(itemAtual.energia * itemAtual.qtd);
+  $('rKwh').textContent = `(${(itemAtual.kwh * itemAtual.qtd).toFixed(2)} kWh)`;
+  $('rDep').textContent = brl(itemAtual.deprec * itemAtual.qtd);
+  $('linhaPerda').classList.toggle('hidden', itemAtual.perdaPct === 0);
+  $('rPerda').textContent = brl(itemAtual.perda * itemAtual.qtd);
+  
+  $('linhaInsumos').classList.toggle('hidden', ins.total <= 0);
+  $('rInsumos').textContent = brl(ins.total);
+
+  const custoItemComInsumos = (itemAtual.base * itemAtual.qtd) + ins.total;
+  const vendaItemComInsumos = (itemAtual.venda * itemAtual.qtd) + (ins.total * itemAtual.mult);
+
+  $('rBase').textContent = brl(custoItemComInsumos);
+  $('rMult').textContent = itemAtual.mult.toString().replace('.', ',');
+  $('rQtdInfo').textContent = `${itemAtual.qtd} un.`;
+
+  $('rVenda').textContent = brl(vendaItemComInsumos);
+  $('rLucro').textContent = brl(vendaItemComInsumos - custoItemComInsumos);
+
+  let somaVendaLote = 0, somaBaseLote = 0;
+  itensLote.forEach(it => { somaVendaLote += it.venda * it.qtd; somaBaseLote += it.base * it.qtd; });
+  
+  const usandoLote = itensLote.length > 0;
+  const vendaTotalGeral = usandoLote ? (somaVendaLote + (ins.total * itemAtual.mult)) : vendaItemComInsumos;
+  const baseTotalGeral = usandoLote ? (somaBaseLote + ins.total) : custoItemComInsumos;
+  $('rTotalLote').textContent = brl(vendaTotalGeral);
+
+  const pisoMult = Math.max(1, parseFloat($('pisoMult').value) || 1.8), pisoTotal = baseTotalGeral * pisoMult, descMax = Math.max(0, vendaTotalGeral - pisoTotal);
+  const dv = Math.max(0, parseFloat($('descValor').value||0));
+  const desc = $('descTipo').value === '%' ? vendaTotalGeral * Math.min(dv, 100) / 100 : Math.min(dv, vendaTotalGeral);
+  const vendaFinalGeral = vendaTotalGeral - desc, lucroFinalGeral = vendaFinalGeral - baseTotalGeral;
+
+  $('rDescMax').textContent = `${brl(descMax)} (${vendaTotalGeral > 0 ? (descMax / vendaTotalGeral * 100).toFixed(1).replace('.', ',') : '0'}%)`;
+  const box = $('boxDesc');
+  box.classList.toggle('hidden', desc <= 0);
+  if (desc > 0) {
+    const pctDesc = vendaTotalGeral > 0 ? (desc / vendaTotalGeral * 100).toFixed(1).replace('.', ',') : '0';
+    $('rOrigRiscado').textContent = brl(vendaTotalGeral);
+    $('rDescAbatido').textContent = `− ${brl(desc)} (${pctDesc}%)`;
+    $('rFinal').textContent = brl(vendaFinalGeral);
+    $('rLucroFinal').textContent = brl(lucroFinalGeral);
+    box.className = 'rounded-xl p-3 text-sm space-y-1 bg-emerald-900/40 border border-emerald-500 text-emerald-200';
+    $('rAviso').textContent = '✅ Desconto seguro.';
+  }
+  ultimo = { ...itemAtual, usandoLote, vendaTotalGeral, baseTotalGeral, desc, vendaFinalGeral, lucroFinalGeral, pisoTotal, descMax, horasTotal: horasTotalGeral, insumosTotal: ins.total, insumosResumo: ins.resumo };
+}
+
+$('btnAddItemLote').addEventListener('click', () => {
+  const it = obterDadosItemAtual();
+  if (it.gramas <= 0 && it.horas <= 0) { exibirAviso('Dados incompletos', 'Informe o peso ou o tempo de impressão antes de adicionar ao lote.'); return; }
+  itensLote.push({...it}); renderLote();
+  $('pdfPeca').value = ''; $('peso').value = '100'; $('horas').value = '3'; $('pdfQtd').value = '1';
+  calcular();
+});
+
+document.querySelectorAll('#abaCalc input, #abaCalc select').forEach(el => {
+  if (!['estado','inputGcodeUnico','inputGcodeMulti'].includes(el.id) && !el.closest('#listaInsumos')) {
+    el.addEventListener('input', calcular);
+  }
+});
+
+// ===== GERAÇÃO DE PDF SEGURA =====
+function abrirDocumentoNovaAba(tipo, orcEspecifico) {
+  let listaItens, cliente, obs, numero, dataISO, descTotalOrc, subtotalOrc, listaExtras, multAplicado;
+  
+  if (orcEspecifico) {
+    listaItens = Array.isArray(orcEspecifico.itensLote) && orcEspecifico.itensLote.length > 0 ? orcEspecifico.itensLote : [{
+      peca: orcEspecifico.peca || 'Peça impressa',
+      qtd: orcEspecifico.qtd || 1,
+      venda: (orcEspecifico.venda || 0) / (orcEspecifico.qtd || 1),
+      base: (orcEspecifico.base || 0) / (orcEspecifico.qtd || 1),
+      gramas: 100, horas: 3, precoKg: 110, watts: 140, deprecHora: 1.5,
+      filamento: 11, kwh: 0.42, energia: 0.42, deprec: 4.5, perda: 0,
+      eqResumo: 'Padrão', acab: 'Bruta'
+    }];
+    cliente = orcEspecifico.cliente;
+    obs = orcEspecifico.campos && orcEspecifico.campos.pdfObs ? orcEspecifico.campos.pdfObs : '';
+    numero = orcEspecifico.numero;
+    dataISO = orcEspecifico.dataISO;
+    subtotalOrc = orcEspecifico.vendaBruta || orcEspecifico.venda || listaItens.reduce((acc, it) => acc + (it.venda * it.qtd), 0);
+    descTotalOrc = orcEspecifico.desc || 0;
+    listaExtras = orcEspecifico.campos && orcEspecifico.campos.insumosJson ? JSON.parse(orcEspecifico.campos.insumosJson) : [];
+    multAplicado = orcEspecifico.campos && orcEspecifico.campos.acabamento ? parseFloat(orcEspecifico.campos.acabamento) : 2.5;
+  } else {
+    calcular();
+    listaItens = ultimo.usandoLote ? [...itensLote] : [obterDadosItemAtual()];
+    cliente = $('pdfCliente').value;
+    obs = $('pdfObs').value;
+    numero = atual.numero;
+    dataISO = atual.dataISO;
+    subtotalOrc = ultimo.vendaTotalGeral;
+    descTotalOrc = ultimo.desc;
+    listaExtras = [...insumosSelecionados];
+    multAplicado = ultimo.mult;
+  }
+
+  const agora = dataISO ? new Date(dataISO) : new Date();
+  const numFinal = numero || gerarNumero(agora);
+  const dataTxt = isNaN(agora.getTime()) ? new Date().toLocaleDateString('pt-BR') : agora.toLocaleDateString('pt-BR');
+  const cliFinal = esc(cliente) || '—';
+  const obsFinal = esc(obs);
+  const interno = tipo === 'interno';
+
+  const custoExtras = listaExtras.reduce((acc, it) => acc + ((parseFloat(it.qtd)||0) * (parseFloat(it.valor)||0)), 0);
+  const custoBaseGeral = listaItens.reduce((acc, it) => acc + (it.base * it.qtd), 0) + custoExtras;
+  const gramasGeral = listaItens.reduce((acc, it) => acc + ((it.gramas || 0) * it.qtd), 0);
+  const horasGeral = listaItens.reduce((acc, it) => acc + ((it.horas || 0) * it.qtd), 0);
+
+  const totalFinal = subtotalOrc - descTotalOrc;
+  const linhaDesc = descTotalOrc > 0 ? `<table style="width:50%;margin:10px 0 0 auto"><tr><td>Subtotal</td><td class="r">${brl(subtotalOrc)}</td></tr><tr><td style="color:#f87171">Desconto</td><td class="r" style="color:#f87171">− ${brl(descTotalOrc)}</td></tr></table>` : '';
+
+  let corpo = '';
+  if (!interno) {
+    const linhasTabela = listaItens.map((it, idx) => `
+      <tr>
+        <td><b>${idx + 1}. ${esc(it.peca)}</b><br><span style="color:#94a3b8;font-size:11px">Impressão 3D · ~${((it.gramas || 100) * it.qtd).toFixed(0)} g · ${((it.horas || 3) * it.qtd).toFixed(1)}h</span></td>
+        <td>${esc(it.acab || 'Bruta')}</td>
+        <td class="r">${it.qtd}</td>
+        <td class="r">${brl(it.venda)}</td>
+        <td class="r"><b>${brl(it.venda * it.qtd)}</b></td>
+      </tr>
+    `).join('');
+
+    const linhasExtrasCli = listaExtras.filter(x => (x.qtd * x.valor) > 0).map(ex => `
+      <tr>
+        <td><b>+ ${esc(ex.nome)}</b><br><span style="color:#94a3b8;font-size:11px">Acabamento / Embalagem adicional</span></td>
+        <td>Extra</td>
+        <td class="r">${ex.qtd}</td>
+        <td class="r">${brl(ex.valor * multAplicado)}</td>
+        <td class="r"><b>${brl(ex.qtd * ex.valor * multAplicado)}</b></td>
+      </tr>
+    `).join('');
+
+    corpo = `
+      <h2>Itens do orçamento (${listaItens.length})</h2>
+      <table>
+        <tr><th>Arquivo / Descrição</th><th>Acabamento</th><th class="r">Qtd</th><th class="r">Unitário</th><th class="r">Total</th></tr>
+        ${linhasTabela}
+        ${linhasExtrasCli}
+      </table>
+      <div style="font-size:12px;color:#94a3b8;margin-top:6px">Filamento total: <b>${gramasGeral.toFixed(0)} g</b> | Tempo total estimado: <b>${horasGeral.toFixed(1)}h</b></div>
+      ${linhaDesc}`;
+  } else {
+    const lucroTotal = totalFinal - custoBaseGeral;
+    const blocosItens = listaItens.map((it, idx) => `
+      <div style="border:1px solid #334155;background:#0f172a;border-radius:6px;padding:8px;margin-bottom:10px;">
+        <div style="font-weight:700;color:#34d399;border-bottom:1px solid #334155;padding-bottom:4px;margin-bottom:6px;display:flex;justify-content:space-between;">
+          <span>${idx + 1}. ${esc(it.peca)} (${it.qtd} un.)</span>
+          <span>Venda: ${brl(it.venda * it.qtd)} | Custo: ${brl(it.base * it.qtd)}</span>
+        </div>
+        <div style="font-size:11px;color:#94a3b8;margin-bottom:6px"><b>Equipamentos:</b> ${esc(it.eqResumo || 'Padrão')} · <b>Tempo:</b> ${((it.horas || 3) * it.qtd).toFixed(1)}h</div>
+      </div>
+    `).join('');
+
+    const blocoExtrasInt = custoExtras > 0 ? `
+      <h2>Insumos e Embalagens Adicionais</h2>
+      <table>
+        <tr><th>Insumo</th><th class="r">Qtd</th><th class="r">Custo Unit.</th><th class="r">Custo Total</th></tr>
+        ${listaExtras.map(ex => `<tr><td>${esc(ex.nome)}</td><td class="r">${ex.qtd}</td><td class="r">${brl(ex.valor)}</td><td class="r">${brl(ex.qtd * ex.valor)}</td></tr>`).join('')}
+      </table>` : '';
+
+    corpo = `
+      <h2>Detalhamento por Arquivo (${listaItens.length})</h2>
+      ${blocosItens}
+      ${blocoExtrasInt}
+      <h2>Resumo Financeiro Consolidado</h2>
+      <table>
+        <tr><th>Indicador</th><th>Valor</th></tr>
+        <tr><td>Custo Base Total (c/ extras)</td><td class="r"><b>${brl(custoBaseGeral)}</b></td></tr>
+        <tr><td>Venda Bruta</td><td class="r">${brl(subtotalOrc)}</td></tr>
+        ${descTotalOrc > 0 ? `<tr><td>Desconto</td><td class="r" style="color:#f87171">− ${brl(descTotalOrc)}</td></tr>` : ''}
+        <tr><td><b>Lucro Líquido Real</b></td><td class="r"><b>${brl(lucroTotal)}</b></td></tr>
+      </table>`;
+  }
+
+  const htmlDoc = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>${interno ? 'Relatório Interno' : 'Orçamento'} - ${numFinal}</title><style>body{font-family:Arial,sans-serif;color:#f8fafc;background:#090d16;padding:25px;max-width:700px;margin:0 auto}.topo{display:flex;justify-content:space-between;border-bottom:4px solid #10b981;padding-bottom:14px;margin-bottom:18px}.marca{font-size:28px;font-weight:700;color:#34d399}.sub{color:#94a3b8;font-size:12px}h2{font-size:15px;color:#34d399;border-left:4px solid #10b981;padding-left:8px;margin:20px 0 8px}table{width:100%;border-collapse:collapse;font-size:13px}th{background:#1e293b;color:#34d399;text-align:left;padding:8px;border-bottom:2px solid #10b981}td{padding:8px;border-bottom:1px solid #1e293b}td.r,th.r{text-align:right}.total{margin-top:18px;background:#065f46;color:#fff;border-radius:10px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center}.total strong{font-size:26px}.obs{font-size:12px;color:#cbd5e1;margin-top:14px;background:#1e293b;padding:10px;border-radius:6px}.rodape{margin-top:28px;border-top:1px solid #1e293b;padding-top:8px;font-size:11px;color:#94a3b8;text-align:center}.btn-imprimir{position:fixed;top:20px;right:20px;background:#059669;color:#fff;border:none;padding:12px 20px;font-size:14px;font-weight:bold;border-radius:8px;cursor:pointer;z-index:9999}@media print{.btn-imprimir{display:none!important}body{background:#fff!important;color:#111!important}}</style></head><body><button class="btn-imprimir" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button><div class="topo"><div><div class="marca">👽 Alien 3D</div><div class="sub">Impressão 3D sob medida</div></div><div style="text-align:right"><b>${interno ? 'RELATÓRIO INTERNO' : 'ORÇAMENTO'}</b><br>Nº ${numFinal}<br>Data: ${dataTxt}</div></div>${interno ? '' : `<h2>Cliente</h2><p><b>Nome:</b> ${cliFinal}</p>`}${corpo}<div class="total"><span>Valor Total</span><strong>${brl(totalFinal)}</strong></div>${obsFinal ? `<h2>Observações</h2><div class="obs">${obsFinal}</div>` : ''}<div class="rodape">Alien 3D · Orçamento ${numFinal}</div></body></html>`;
+
+  const blob = new Blob([htmlDoc], { type: 'text/html;charset=utf-8' });
+  const blobUrl = URL.createObjectURL(blob);
+  const win = window.open(blobUrl, '_blank');
+  if (!win) {
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+}
+
+$('btnPdfCliente').addEventListener('click', () => abrirDocumentoNovaAba('cliente', null));
+$('btnPdfInterno').addEventListener('click', () => abrirDocumentoNovaAba('interno', null));
+
+// ===== DISPARAR WHATSAPP =====
+function dispararWhatsApp(orc) {
+  const cliente = orc ? orc.cliente : ($('pdfCliente').value.trim() || 'Cliente');
+  const telefone = orc && orc.campos ? (orc.campos.pdfTelefone || '') : $('pdfTelefone').value.trim();
+  const numeroOrc = orc ? orc.numero : (atual.numero || 'A3D');
+  calcular();
+  const valorTotal = orc ? orc.venda : ultimo.vendaFinalGeral;
+
+  const texto = `Olá *${cliente}*! 👽 Aqui está o orçamento da *Alien 3D* (${numeroOrc}).\n\n💰 *Valor Total:* ${brl(valorTotal)}\n\nGere o seu PDF de orçamento direto na nossa ferramenta e confirme conosco para iniciarmos a impressão!`;
+  const textoCodificado = encodeURIComponent(texto);
+
+  let urlNormal = `https://api.whatsapp.com/send?text=${textoCodificado}`;
+  let urlBusiness = `https://wa.me/?text=${textoCodificado}`;
+
+  if (telefone) {
+    const foneLimpo = telefone.replace(/\D/g, '');
+    const foneFinal = foneLimpo.startsWith('55') ? foneLimpo : '55' + foneLimpo;
+    urlNormal = `https://api.whatsapp.com/send?phone=${foneFinal}&text=${textoCodificado}`;
+    urlBusiness = `https://wa.me/${foneFinal}?text=${textoCodificado}`;
+  }
+
+  $('linkWppNormal').href = urlNormal;
+  $('linkWppBusiness').href = urlBusiness;
+  $('modalWhatsapp').classList.remove('hidden');
+}
+
+$('btnWhatsapp').addEventListener('click', () => dispararWhatsApp(null));
+$('fecharModalWpp').addEventListener('click', () => $('modalWhatsapp').classList.add('hidden'));
+
+// ===== HISTÓRICO E EXCLUSÃO =====
+let atual = {id:null, numero:null, dataISO:null, concluido:false};
+let filtroCliente = null, filtroStatus = 'todos';
+
+function gerarNumero(d) {
+  const p = x => String(x).padStart(2,'0');
+  return `A3D-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+}
+
+async function salvarOrcamento(silencioso) {
+  const cliente = $('pdfCliente').value.trim();
+  if (!cliente) { if (!silencioso) exibirAviso('Campo obrigatório', 'Digite o nome do cliente antes de salvar o orçamento.'); return false; }
+  calcular();
+  if (!atual.id) { 
+    const d = new Date(); 
+    atual = {id: String(d.getTime()), dataISO: d.toISOString(), numero: gerarNumero(d), concluido: false}; 
+  }
+  const listaItens = itensLote.length > 0 ? [...itensLote] : [obterDadosItemAtual()];
+  const campos = {}; 
+  ['peso','pesoUn','horas','estado','cidade','tarifa','precoKg','acabamento','deprec','perda','multCustom','pisoMult','descTipo','descValor','pdfCliente','pdfTelefone','pdfPeca','pdfQtd','pdfValidade','pdfObs'].forEach(id => campos[id] = $(id).value);
+  campos.insumosJson = JSON.stringify(insumosSelecionados);
+
+  const reg = {
+    id: String(atual.id), numero: atual.numero, dataISO: atual.dataISO, cliente,
+    concluido: atual.concluido || false,
+    peca: listaItens.length > 1 ? `${listaItens.length} arquivos` : listaItens[0].peca,
+    qtd: listaItens.reduce((a, b) => a + b.qtd, 0),
+    vendaBruta: ultimo.vendaTotalGeral,
+    desc: ultimo.desc,
+    venda: ultimo.vendaFinalGeral,
+    base: ultimo.baseTotalGeral,
+    campos, itensLote: listaItens, impsSelecionadas: [...impsSelecionadas], secsSelecionadas: [...secsSelecionadas]
+  };
+
+  const sucesso = await salvarNaNuvem(reg);
+  if (sucesso) $('statusSalvo').textContent = `✅ Salvo na nuvem: ${reg.numero}`;
+  return sucesso;
+}
+
+function novoOrcamento() {
+  atual = {id:null, numero:null, dataISO:null, concluido:false}; itensLote = []; insumosSelecionados = []; renderLote(); renderInsumos();
+  ['pdfCliente','pdfTelefone','pdfPeca','pdfObs'].forEach(id => $(id).value = '');
+  $('descValor').value = 0; $('pdfQtd').value = 1; $('statusSalvo').textContent = '';
+  calcular();
+}
+
+function abrirOrcamento(id) {
+  const q = memoriaOrcamentos.find(x => String(x.id) === String(id)); if (!q) return false;
+  Object.entries(q.campos || {}).forEach(([k, v]) => { if ($(k)) $(k).value = v; });
+  insumosSelecionados = q.campos && q.campos.insumosJson ? JSON.parse(q.campos.insumosJson) : [];
+  itensLote = Array.isArray(q.itensLote) ? [...q.itensLote] : [];
+  if (Array.isArray(q.impsSelecionadas) && q.impsSelecionadas.length) impsSelecionadas = [...q.impsSelecionadas];
+  if (Array.isArray(q.secsSelecionadas)) secsSelecionadas = [...q.secsSelecionadas];
+  renderEquipamentos(); renderLote(); renderInsumos();
+  atual = {id: q.id, numero: q.numero, dataISO: q.dataISO, concluido: q.concluido};
+  $('statusSalvo').textContent = `✏️ Editando ${q.numero} · ${q.cliente}`;
+  calcular(); mostrarAba('calc');
+}
+
+async function alternarStatusOrcamento(id) {
+  const q = memoriaOrcamentos.find(x => String(x.id) === String(id));
+  if (q) {
+    q.concluido = !q.concluido;
+    await salvarNaNuvem(q);
+  }
+}
+
+function mostrarAba(aba) {
+  const calc = aba === 'calc';
+  $('abaCalc').classList.toggle('hidden', !calc);
+  $('abaLista').classList.toggle('hidden', calc);
+  $('tabCalc').className = 'px-4 py-2.5 rounded-xl font-semibold text-sm transition ' + (calc ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700');
+  $('tabLista').className = 'px-4 py-2.5 rounded-xl font-semibold text-sm transition ' + (!calc ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700');
+  if (!calc) renderLista();
+}
+
+const semAcento = t => String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+
+function renderLista() {
+  $('qtdSalvos').textContent = memoriaOrcamentos.length;
+  const termo = semAcento($('busca').value);
+
+  $('filtroStatusTodos').className = `px-3.5 py-2 rounded-xl transition ${filtroStatus === 'todos' ? 'bg-emerald-700 font-bold text-white' : 'bg-slate-700 text-slate-300'}`;
+  $('filtroStatusPendentes').className = `px-3.5 py-2 rounded-xl transition ${filtroStatus === 'pendente' ? 'bg-emerald-700 font-bold text-white' : 'bg-slate-700 text-slate-300'}`;
+  $('filtroStatusConcluidos').className = `px-3.5 py-2 rounded-xl transition ${filtroStatus === 'concluido' ? 'bg-emerald-700 font-bold text-white' : 'bg-slate-700 text-slate-300'}`;
+
+  const grupos = {};
+  memoriaOrcamentos.forEach(q => {
+    const nomeCli = q.cliente || 'Cliente Sem Nome';
+    const k = semAcento(nomeCli);
+    (grupos[k] = grupos[k] || {nome: nomeCli, itens: []}).itens.push(q);
+  });
+  const nomes = Object.entries(grupos).sort((a,b) => a[1].nome.localeCompare(b[1].nome, 'pt-BR'));
+  
+  let h = `<button data-cli="" class="w-full text-left px-3 py-2 rounded-xl text-sm transition ${filtroCliente===null?'bg-emerald-700 font-bold':'bg-slate-700/80 hover:bg-slate-700'}">Todos (${memoriaOrcamentos.length})</button>`;
+  nomes.forEach(([k, g]) => {
+    if (termo && !semAcento(g.nome).includes(termo)) return;
+    h += `<button data-cli="${esc(k)}" class="w-full text-left px-3 py-2 rounded-xl text-sm transition ${filtroCliente===k?'bg-emerald-700 font-bold':'bg-slate-700/80 hover:bg-slate-700'}">${esc(g.nome)} (${g.itens.length})</button>`;
+  });
+  $('listaClientes').innerHTML = h;
+
+  let itens = memoriaOrcamentos.filter(q => {
+    if (filtroStatus === 'pendente' && q.concluido) return false;
+    if (filtroStatus === 'concluido' && !q.concluido) return false;
+    if (filtroCliente !== null && semAcento(q.cliente || '') !== filtroCliente) return false;
+    if (!termo) return true;
+    return semAcento((q.cliente||'') + ' ' + (q.peca||'') + ' ' + (q.numero||'')).includes(termo);
+  });
+
+  if (!itens.length) { $('listaOrc').innerHTML = `<p class="text-slate-400 text-sm">Nenhum orçamento encontrado.</p>`; return; }
+  
+  $('listaOrc').innerHTML = itens.map(q => {
+    const dataFormatada = q.dataISO && !isNaN(new Date(q.dataISO).getTime()) ? new Date(q.dataISO).toLocaleDateString('pt-BR') : 'Data recente';
+    const fone = q.campos && q.campos.pdfTelefone ? ` · 📞 ${esc(q.campos.pdfTelefone)}` : '';
+    const safeId = String(q.id || '');
+    return `
+      <div class="bg-slate-700/80 rounded-xl p-3.5 shadow border ${q.concluido ? 'border-emerald-500/50 opacity-85' : 'border-slate-600'}">
+        <div class="flex justify-between gap-3">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <p class="font-semibold truncate">${esc(q.cliente || 'Cliente')}${fone}</p>
+              <span class="text-[10px] px-2 py-0.5 rounded-md font-semibold ${q.concluido ? 'bg-emerald-900 text-emerald-300' : 'bg-amber-900 text-amber-300'}">${q.concluido ? '✅ Concluído' : '⏳ Pendente'}</span>
+            </div>
+            <p class="text-sm text-slate-300 truncate">${esc(q.peca || 'Peça 3D')} · ${q.qtd || 1} un.</p>
+            <p class="text-xs text-slate-400">${esc(q.numero || 'A3D')} · ${dataFormatada}</p>
+          </div>
+          <p class="text-lg font-bold text-emerald-400 whitespace-nowrap">${brl(q.venda || 0)}</p>
+        </div>
+        <div class="flex flex-wrap gap-2 mt-3 text-xs">
+          <button type="button" data-acao="status" data-id="${safeId}" class="${q.concluido ? 'bg-slate-600' : 'bg-emerald-600'} rounded-lg px-2.5 py-1.5 text-white font-medium transition">${q.concluido ? '↩️ Reabrir' : '✅ Concluir'}</button>
+          <button type="button" data-acao="abrir" data-id="${safeId}" class="bg-sky-600 rounded-lg px-2.5 py-1.5 text-white transition">✏️ Editar</button>
+          <button type="button" data-acao="wpp" data-id="${safeId}" class="bg-emerald-700 rounded-lg px-2.5 py-1.5 text-white font-medium transition">💬 WhatsApp</button>
+          <button type="button" data-acao="pdfcli" data-id="${safeId}" class="bg-rose-600 rounded-lg px-2.5 py-1.5 text-white font-medium transition">📄 PDF Cliente</button>
+          <button type="button" data-acao="pdfint" data-id="${safeId}" class="bg-amber-600 rounded-lg px-2.5 py-1.5 text-white font-medium transition">📊 PDF Loja</button>
+          <button type="button" data-acao="del" data-id="${safeId}" class="bg-slate-600 hover:bg-red-600 rounded-lg px-2.5 py-1.5 ml-auto text-white transition">🗑️ Apagar</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+$('listaClientes').addEventListener('click', e => { const b = e.target.closest('button[data-cli]'); if (b) { filtroCliente = b.dataset.cli === '' ? null : b.dataset.cli; renderLista(); } });
+$('filtroStatusTodos').addEventListener('click', () => { filtroStatus = 'todos'; renderLista(); });
+$('filtroStatusPendentes').addEventListener('click', () => { filtroStatus = 'pendente'; renderLista(); });
+$('filtroStatusConcluidos').addEventListener('click', () => { filtroStatus = 'concluido'; renderLista(); });
+
+$('listaOrc').addEventListener('click', async e => {
+  const b = e.target.closest('button[data-acao]'); if (!b) return;
+  const id = String(b.dataset.id || '');
+  const acao = b.dataset.acao;
+  if (!id) return;
+  
+  if (acao === 'status') await alternarStatusOrcamento(id);
+  else if (acao === 'abrir') abrirOrcamento(id);
+  else if (acao === 'wpp') {
+    const q = memoriaOrcamentos.find(x => String(x.id) === id);
+    if (q) dispararWhatsApp(q);
+  }
+  else if (acao === 'pdfcli') {
+    const q = memoriaOrcamentos.find(x => String(x.id) === id);
+    if (q) abrirDocumentoNovaAba('cliente', q);
+  }
+  else if (acao === 'pdfint') {
+    const q = memoriaOrcamentos.find(x => String(x.id) === id);
+    if (q) abrirDocumentoNovaAba('interno', q);
+  }
+  else if (acao === 'del') {
+    const ok = await exibirConfirmacao('Apagar Orçamento', 'Tem certeza que deseja apagar este orçamento da nuvem permanentemente?');
+    if (ok) {
+      await deletarDaNuvem(id);
+    }
+  }
+});
+
+$('busca').addEventListener('input', renderLista);
+$('tabCalc').addEventListener('click', () => mostrarAba('calc'));
+$('tabLista').addEventListener('click', () => mostrarAba('lista'));
+$('btnSalvar').addEventListener('click', () => salvarOrcamento(false));
+$('btnNovo').addEventListener('click', novoOrcamento);
+$('btnSincronizar').addEventListener('click', carregarDaNuvem);
+$('btnDescMax').addEventListener('click', () => {
+  calcular();
+  $('descTipo').value = 'R$';
+  $('descValor').value = ultimo.descMax.toFixed(2);
+  calcular();
+});
+$('btnWeb').addEventListener('click', () => {
+  const cid = $('cidade').value.trim() || NOMES[$('estado').value];
+  window.open(`https://www.google.com/search?q=tarifa+energia+kwh+${encodeURIComponent(cid)}+${$('estado').value}`, '_blank');
+});
+$('btnSalvarEq').addEventListener('click', () => {
+  const tipo = $('novoEqTipo').value, nome = $('novoEqNome').value.trim(), watts = parseFloat($('novoEqWatts').value);
+  if (!nome || !watts || watts <= 0) { exibirAviso('Dados inválidos', 'Preencha o nome e a potência em Watts.'); return; }
+  const ex = getEquipamentosExtras();
+  ex[tipo].push({ marca: 'Personalizado', modelo: nome, watts });
+  salvarEquipamentosExtras(ex);
+  $('novoEqNome').value = ''; $('novoEqWatts').value = '';
+  renderEquipamentos();
+  exibirAviso('Equipamento Salvo', `"${nome}" foi adicionado à sua lista.`);
+});
+
+// Inicialização
+window.onload = function() {
+  renderEquipamentos();
+  renderInsumos();
+  carregarDaNuvem();
+  $('estado').value = 'MA';
+  $('cidade').value = 'Pinheiro';
+  aplicarTarifaEstado(true);
+};
+</script>
+</body>
+</html>
